@@ -8,7 +8,7 @@ A lightweight Paper plugin that automatically checks, validates, and stages upda
 
 - ViaVersion
 - ViaBackwards
-- ViaRewind (only checked when installed)
+- ViaRewind 
 
 Each plugin can independently follow stable GitHub releases or successful development builds from the official ViaVersion CI.
 
