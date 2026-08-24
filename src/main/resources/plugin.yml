@@ -1,0 +1,17 @@
+name: PluginUpdater
+version: '1.0.2'
+main: it.fil.pluginupdater.PluginUpdaterPlugin
+api-version: '1.21'
+author: Fil
+description: Aggiorna automaticamente plugin selezionati usando le release ufficiali GitHub.
+softdepend: [ViaVersion, ViaBackwards, ViaRewind]
+commands:
+  pluginupdater:
+    description: Gestisce gli aggiornamenti automatici dei plugin.
+    usage: /pluginupdater <status|check|update|reload>
+    aliases: [pupdater]
+    permission: pluginupdater.admin
+permissions:
+  pluginupdater.admin:
+    description: Permette di gestire PluginUpdater.
+    default: op

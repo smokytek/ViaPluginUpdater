@@ -1,0 +1,39 @@
+# Ogni quante ore controllare GitHub. Minimo: 1 ora.
+check-interval-hours: 6
+
+# Se true, una nuova release viene scaricata in plugins/update e installata
+# automaticamente al successivo riavvio completo del server.
+download-updates: true
+
+# Esegue un controllo poco dopo l'avvio del server.
+check-on-startup: true
+
+# Dopo un aggiornamento riuscito elimina dalla cartella plugins i JAR con lo
+# stesso nome interno ma con una versione precedente a quella caricata.
+delete-old-jars: true
+
+# Opzionale: aumenta il limite delle richieste GitHub. Non serve normalmente.
+# Il token non viene mai scritto nei log.
+github-token: ''
+
+plugins:
+  ViaVersion:
+    enabled: true
+    # release = ultima versione stabile GitHub; dev = ultima build CI ufficiale.
+    channel: release
+    repository: ViaVersion/ViaVersion
+    dev-job-url: https://ci.viaversion.com/job/ViaVersion
+    asset-regex: '^ViaVersion-[0-9].*\.jar$'
+  ViaBackwards:
+    enabled: true
+    channel: release
+    repository: ViaVersion/ViaBackwards
+    dev-job-url: https://ci.viaversion.com/view/ViaBackwards/job/ViaBackwards
+    asset-regex: '^ViaBackwards-[0-9].*\.jar$'
+  # Opzionale: viene ignorato automaticamente se ViaRewind non è installato.
+  ViaRewind:
+    enabled: true
+    channel: release
+    repository: ViaVersion/ViaRewind
+    dev-job-url: https://ci.viaversion.com/view/ViaRewind/job/ViaRewind
+    asset-regex: '^ViaRewind-[0-9].*\.jar$'
