@@ -49,7 +49,7 @@ final class VersionComparator {
     }
 
     private static void flush(List<String> result, StringBuilder value) {
-        if (!value.isEmpty()) {
+        if (value.length() > 0) {
             result.add(value.toString());
             value.setLength(0);
         }

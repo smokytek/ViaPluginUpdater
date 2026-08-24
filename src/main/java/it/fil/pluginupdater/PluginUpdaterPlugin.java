@@ -20,6 +20,8 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -32,6 +34,7 @@ import java.util.jar.JarFile;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import java.util.stream.Stream;
 
 public final class PluginUpdaterPlugin extends JavaPlugin implements TabExecutor {
     private static final String PREFIX = ChatColor.DARK_AQUA + "[PluginUpdater] " + ChatColor.RESET;
@@ -40,7 +43,7 @@ public final class PluginUpdaterPlugin extends JavaPlugin implements TabExecutor
     private final Map<String, String> latestVersions = new HashMap<>();
     private final Map<String, String> stagedVersions = new HashMap<>();
     private final Map<String, Integer> downloadedDevBuilds = new HashMap<>();
-    private List<TrackedPlugin> tracked = List.of();
+    private List<TrackedPlugin> tracked = Collections.emptyList();
     private GitHubReleaseClient client;
     private BukkitTask scheduledTask;
 
@@ -82,7 +85,7 @@ public final class PluginUpdaterPlugin extends JavaPlugin implements TabExecutor
         ConfigurationSection root = getConfig().getConfigurationSection("plugins");
         if (root == null) {
             getLogger().warning("Nessun plugin configurato nella sezione plugins.");
-            return List.of();
+            return Collections.emptyList();
         }
         List<TrackedPlugin> result = new ArrayList<>();
         for (String name : root.getKeys(false)) {
@@ -109,7 +112,7 @@ public final class PluginUpdaterPlugin extends JavaPlugin implements TabExecutor
                 getLogger().warning("asset-regex non valida per " + name + ": " + exception.getMessage());
             }
         }
-        return List.copyOf(result);
+        return Collections.unmodifiableList(result);
     }
 
     private static String defaultDevJobUrl(String name) {
@@ -127,7 +130,7 @@ public final class PluginUpdaterPlugin extends JavaPlugin implements TabExecutor
             for (TrackedPlugin target : tracked) {
                 Plugin loaded = Bukkit.getPluginManager().getPlugin(target.name());
                 if (loaded != null) {
-                    loadedVersions.put(target.name(), loaded.getPluginMeta().getVersion());
+                    loadedVersions.put(target.name(), loaded.getDescription().getVersion());
                 }
             }
             Bukkit.getScheduler().runTaskAsynchronously(this, () -> cleanupOldJars(loadedVersions));
@@ -136,7 +139,7 @@ public final class PluginUpdaterPlugin extends JavaPlugin implements TabExecutor
 
     private void cleanupOldJars(Map<String, String> loadedVersions) {
         Path pluginsFolder = getDataFolder().toPath().getParent().toAbsolutePath().normalize();
-        try (var files = Files.list(pluginsFolder)) {
+        try (Stream<Path> files = Files.list(pluginsFolder)) {
             files.filter(path -> Files.isRegularFile(path) && !Files.isSymbolicLink(path))
                     .filter(path -> path.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".jar"))
                     .forEach(path -> inspectAndDeleteOldJar(pluginsFolder, path, loadedVersions));
@@ -202,9 +205,9 @@ public final class PluginUpdaterPlugin extends JavaPlugin implements TabExecutor
                 tell(sender, ChatColor.YELLOW + target.name() + ": non installato, ignorato.");
                 return;
             }
-            String installed = installedPlugin.getPluginMeta().getVersion();
+            String installed = installedPlugin.getDescription().getVersion();
             Optional<ReleaseInfo> optionalRelease = client.latest(target);
-            if (optionalRelease.isEmpty()) {
+            if (!optionalRelease.isPresent()) {
                 tell(sender, ChatColor.YELLOW + target.name() + ": nessun JAR compatibile nel canale "
                         + target.channel().name().toLowerCase(Locale.ROOT) + ".");
                 return;
@@ -229,15 +232,12 @@ public final class PluginUpdaterPlugin extends JavaPlugin implements TabExecutor
                 tell(sender, ChatColor.AQUA + target.name() + " " + release.displayVersion()
                         + " pronto: verrà installato al prossimo riavvio.");
             }
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            logFailure(target, sender, "controllo interrotto", exception);
         } catch (Exception exception) {
             logFailure(target, sender, exception.getMessage(), exception);
         }
     }
 
-    private void stage(TrackedPlugin target, ReleaseInfo release) throws IOException, InterruptedException {
+    private void stage(TrackedPlugin target, ReleaseInfo release) throws IOException {
         byte[] jar = client.download(release);
         validateJar(jar, target.name(), release.version());
 
@@ -331,7 +331,7 @@ public final class PluginUpdaterPlugin extends JavaPlugin implements TabExecutor
     }
 
     private void logFailure(TrackedPlugin target, CommandSender sender, String message, Exception exception) {
-        String safeMessage = message == null || message.isBlank() ? exception.getClass().getSimpleName() : message;
+        String safeMessage = message == null || message.trim().isEmpty() ? exception.getClass().getSimpleName() : message;
         getLogger().log(Level.WARNING, "Aggiornamento di " + target.name() + " fallito: " + safeMessage, exception);
         tell(sender, ChatColor.RED + target.name() + ": " + safeMessage);
     }
@@ -351,14 +351,20 @@ public final class PluginUpdaterPlugin extends JavaPlugin implements TabExecutor
             return true;
         }
         switch (args[0].toLowerCase(Locale.ROOT)) {
-            case "check" -> Bukkit.getScheduler().runTaskAsynchronously(this, () -> checkAll(sender, false));
-            case "update" -> Bukkit.getScheduler().runTaskAsynchronously(this, () -> checkAll(sender, true));
-            case "reload" -> {
+            case "check":
+                Bukkit.getScheduler().runTaskAsynchronously(this, () -> checkAll(sender, false));
+                break;
+            case "update":
+                Bukkit.getScheduler().runTaskAsynchronously(this, () -> checkAll(sender, true));
+                break;
+            case "reload":
                 reloadUpdater();
                 sender.sendMessage(PREFIX + ChatColor.GREEN + "Configurazione ricaricata.");
-            }
-            default -> sender.sendMessage(PREFIX + ChatColor.YELLOW
-                    + "Uso: /" + label + " <status|check|update|reload>");
+                break;
+            default:
+                sender.sendMessage(PREFIX + ChatColor.YELLOW
+                        + "Uso: /" + label + " <status|check|update|reload>");
+                break;
         }
         return true;
     }
@@ -367,7 +373,7 @@ public final class PluginUpdaterPlugin extends JavaPlugin implements TabExecutor
         sender.sendMessage(PREFIX + ChatColor.AQUA + "Plugin monitorati:");
         for (TrackedPlugin target : tracked) {
             Plugin installed = Bukkit.getPluginManager().getPlugin(target.name());
-            String current = installed == null ? "non installato" : installed.getPluginMeta().getVersion();
+            String current = installed == null ? "non installato" : installed.getDescription().getVersion();
             String latest;
             synchronized (latestVersions) {
                 latest = latestVersions.getOrDefault(target.name(), "non ancora controllata");
@@ -383,10 +389,13 @@ public final class PluginUpdaterPlugin extends JavaPlugin implements TabExecutor
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length != 1) {
-            return List.of();
+            return Collections.emptyList();
         }
         String prefix = args[0].toLowerCase(Locale.ROOT);
-        return List.of("status", "check", "update", "reload").stream()
-                .filter(value -> value.startsWith(prefix)).toList();
+        List<String> result = new ArrayList<String>();
+        for (String value : Arrays.asList("status", "check", "update", "reload")) {
+            if (value.startsWith(prefix)) result.add(value);
+        }
+        return result;
     }
 }

@@ -25,12 +25,16 @@ Each plugin can independently follow stable GitHub releases or successful develo
 
 ## Requirements
 
-- Paper 1.21 or newer
-- Java 21 or newer
+- Bukkit, Spigot, or Paper from Minecraft 1.7.10 through 26.2
+- Java 8 or newer for ViaPluginUpdater itself
+
+Current standard builds of the Via plugins normally require Java 17 or newer. On a Java 8 server,
+use the official ViaVersion Java 8 compatibility builds. ViaVersion itself does not officially run
+directly on a 1.7.10 Bukkit server; that server version may require a supported proxy or ViaLegacy.
 
 ## Installation
 
-1. Download `PluginUpdater-1.0.2.jar` from the latest GitHub release.
+1. Download `PluginUpdater-1.1.0.jar` from the latest GitHub release.
 2. Put it in the server's `plugins` folder.
 3. Start or restart the server.
 4. Edit `plugins/PluginUpdater/config.yml` if needed.
@@ -58,7 +62,7 @@ All commands require `pluginupdater.admin`, granted to server operators by defau
 mvn clean package
 ```
 
-The compiled plugin is written to `target/PluginUpdater-1.0.2.jar`.
+The compiled plugin is written to `target/PluginUpdater-1.1.0.jar`.
 
 ## Disclaimer
 

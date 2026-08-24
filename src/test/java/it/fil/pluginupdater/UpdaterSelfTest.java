@@ -20,7 +20,7 @@ public final class UpdaterSelfTest {
     private static void testDev(GitHubReleaseClient client, String name, String jobUrl) throws Exception {
         TrackedPlugin plugin = new TrackedPlugin(name, "ViaVersion/" + name,
                 Pattern.compile("^" + name + "-[0-9].*\\.jar$"), UpdateChannel.DEV, jobUrl);
-        ReleaseInfo build = client.latest(plugin).orElseThrow();
+        ReleaseInfo build = client.latest(plugin).get();
         require(build.buildNumber() > 0, "numero build dev " + name);
         require(build.version().contains("SNAPSHOT"), "versione snapshot " + name);
         require(client.download(build).length > 0, "download dev " + name);
@@ -30,7 +30,7 @@ public final class UpdaterSelfTest {
     private static void testRelease(GitHubReleaseClient client, String name, String repository) throws Exception {
         TrackedPlugin plugin = new TrackedPlugin(name, repository,
                 Pattern.compile("^" + name + "-[0-9].*\\.jar$"), UpdateChannel.RELEASE, "");
-        ReleaseInfo release = client.latest(plugin).orElseThrow();
+        ReleaseInfo release = client.latest(plugin).get();
         require(release.assetName().startsWith(name + "-"), "asset " + name);
         require(release.size() > 0, "dimensione asset " + name);
         require(client.download(release).length == release.size(), "download e checksum " + name);
