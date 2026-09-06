@@ -2,21 +2,23 @@
 
 > tired of updating viaplugins almost everyday, this simple plugin is for you
 
-A lightweight Paper plugin that automatically checks, validates, and stages updates for the ViaVersion plugin family.
+A lightweight Bukkit, Spigot, and Paper plugin that automatically checks, validates, and stages protocol-plugin updates.
 
 ## Supported plugins
 
 - ViaVersion
 - ViaBackwards
-- ViaRewind 
+- ViaRewind
+- ProtocolLib
+- PacketEvents
 
-Each plugin can independently follow stable GitHub releases or successful development builds from the official ViaVersion CI.
+Each plugin can independently follow stable or development builds from its official distribution channel.
 
 ## Features
 
 - Automatic checks on a configurable schedule
 - Per-plugin `release` or `dev` update channel
-- Downloads only from official GitHub and ViaVersion CI hosts
+- Downloads only from official GitHub, ViaVersion CI, and CodeMC CI hosts
 - Validates file size, SHA-256 when published, JAR structure, plugin name, and version
 - Stages updates in Paper's `plugins/update` folder for the next full restart
 - Detects new dev builds even when the `SNAPSHOT` version string does not change
@@ -34,7 +36,7 @@ directly on a 1.7.10 Bukkit server; that server version may require a supported 
 
 ## Installation
 
-1. Download `PluginUpdater-1.1.1.jar` from the latest GitHub release.
+1. Download `PluginUpdater-1.2.0-extended.jar` from this branch's build output.
 2. Put it in the server's `plugins` folder.
 3. Start or restart the server.
 4. Edit `plugins/PluginUpdater/config.yml` if needed.
@@ -43,7 +45,7 @@ Do not use `/reload` or a plugin manager to apply Via plugin updates. Use a full
 
 ## Update channels
 
-Set `channel: release` for stable GitHub releases or `channel: dev` for the latest successful build from the official ViaVersion CI. The channel is configured independently for ViaVersion, ViaBackwards, and ViaRewind.
+Set `channel: release` for stable GitHub releases or `channel: dev` for the latest official development build. ViaVersion, ViaBackwards, and ViaRewind use ViaVersion CI; ProtocolLib uses its `dev-build` GitHub release; PacketEvents uses CodeMC CI. The channel is configured independently for every plugin.
 
 Network failures are logged as a single concise warning by default. Set
 `show-stack-traces: true` only when a complete exception trace is needed for debugging.
@@ -65,8 +67,8 @@ All commands require `pluginupdater.admin`, granted to server operators by defau
 mvn clean package
 ```
 
-The compiled plugin is written to `target/PluginUpdater-1.1.1.jar`.
+The compiled plugin is written to `target/PluginUpdater-1.2.0-extended.jar`.
 
 ## Disclaimer
 
-This project is not affiliated with or endorsed by the ViaVersion project. ViaVersion, ViaBackwards, and ViaRewind belong to their respective authors.
+This project is not affiliated with or endorsed by ViaVersion, ProtocolLib, or PacketEvents. All supported plugins belong to their respective authors.

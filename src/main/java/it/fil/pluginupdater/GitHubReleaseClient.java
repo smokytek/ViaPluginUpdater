@@ -26,12 +26,34 @@ final class GitHubReleaseClient {
     }
 
     Optional<ReleaseInfo> latest(TrackedPlugin plugin) throws IOException {
+        if (plugin.channel() == UpdateChannel.DEV && !plugin.devReleaseTag().isEmpty()) {
+            return taggedDevRelease(plugin);
+        }
         return plugin.channel() == UpdateChannel.DEV ? latestDev(plugin) : latestRelease(plugin);
     }
 
     private Optional<ReleaseInfo> latestRelease(TrackedPlugin plugin) throws IOException {
-        URI uri = URI.create(API_ROOT + plugin.repository() + "/releases/latest");
-        JsonObject root = requestJson(uri);
+        URI uri = URI.create(API_ROOT + plugin.repository() + "/releases?per_page=20");
+        JsonArray releases = requestJsonElement(uri).getAsJsonArray();
+        for (JsonElement element : releases) {
+            JsonObject release = element.getAsJsonObject();
+            String tag = requiredString(release, "tag_name");
+            boolean draft = release.has("draft") && release.get("draft").getAsBoolean();
+            boolean prerelease = release.has("prerelease") && release.get("prerelease").getAsBoolean();
+            if (!draft && !prerelease && !tag.equals(plugin.devReleaseTag())) {
+                return releaseAsset(plugin, release, false);
+            }
+        }
+        return Optional.empty();
+    }
+
+    private Optional<ReleaseInfo> taggedDevRelease(TrackedPlugin plugin) throws IOException {
+        URI uri = URI.create(API_ROOT + plugin.repository() + "/releases/tags/" + plugin.devReleaseTag());
+        return releaseAsset(plugin, requestJsonElement(uri).getAsJsonObject(), true);
+    }
+
+    private Optional<ReleaseInfo> releaseAsset(TrackedPlugin plugin, JsonObject root,
+                                               boolean development) throws IOException {
         String tag = requiredString(root, "tag_name");
         JsonArray assets = root.getAsJsonArray("assets");
         if (assets == null) return Optional.empty();
@@ -48,7 +70,8 @@ final class GitHubReleaseClient {
             String digest = asset.has("digest") && !asset.get("digest").isJsonNull()
                     ? asset.get("digest").getAsString() : "";
             String checksum = digest.startsWith("sha256:") ? digest.substring(7) : "";
-            return Optional.of(new ReleaseInfo(tag, name, download, size, checksum, 0));
+            int build = development && asset.has("id") ? asset.get("id").getAsInt() : 0;
+            return Optional.of(new ReleaseInfo(tag, name, download, size, checksum, build));
         }
         return Optional.empty();
     }
@@ -70,8 +93,7 @@ final class GitHubReleaseClient {
                 throw new IOException("Percorso artifact CI non valido");
             }
             URI download = buildUri.resolve("artifact/" + path);
-            String prefix = plugin.name() + "-";
-            String version = name.substring(prefix.length(), name.length() - 4);
+            String version = versionFromAsset(name);
             return Optional.of(new ReleaseInfo(version, name, download, -1L, "", buildNumber));
         }
         return Optional.empty();
@@ -90,9 +112,21 @@ final class GitHubReleaseClient {
         return body;
     }
 
-    private JsonObject requestJson(URI uri) throws IOException {
+    private JsonElement requestJsonElement(URI uri) throws IOException {
         byte[] bytes = requestBytes(uri, isGitHubApi(uri));
-        return new JsonParser().parse(new String(bytes, "UTF-8")).getAsJsonObject();
+        return new JsonParser().parse(new String(bytes, "UTF-8"));
+    }
+
+    private JsonObject requestJson(URI uri) throws IOException {
+        return requestJsonElement(uri).getAsJsonObject();
+    }
+
+    private static String versionFromAsset(String name) throws IOException {
+        String withoutJar = name.endsWith(".jar") ? name.substring(0, name.length() - 4) : name;
+        for (int i = 0; i < withoutJar.length(); i++) {
+            if (Character.isDigit(withoutJar.charAt(i))) return withoutJar.substring(i);
+        }
+        throw new IOException("Versione non riconoscibile dal nome asset: " + name);
     }
 
     private byte[] requestBytes(URI uri, boolean apiRequest) throws IOException {
@@ -160,7 +194,8 @@ final class GitHubReleaseClient {
 
     private static boolean isOfficialCi(URI uri) {
         return "https".equalsIgnoreCase(uri.getScheme())
-                && "ci.viaversion.com".equalsIgnoreCase(uri.getHost());
+                && ("ci.viaversion.com".equalsIgnoreCase(uri.getHost())
+                || "ci.codemc.io".equalsIgnoreCase(uri.getHost()));
     }
 
     private static String requiredString(JsonObject object, String key) throws IOException {

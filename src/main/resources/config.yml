@@ -41,3 +41,16 @@ plugins:
     repository: ViaVersion/ViaRewind
     dev-job-url: https://ci.viaversion.com/view/ViaRewind/job/ViaRewind
     asset-regex: '^ViaRewind-[0-9].*\.jar$'
+  ProtocolLib:
+    enabled: true
+    channel: release
+    repository: dmulloy2/ProtocolLib
+    # ProtocolLib pubblica le build dev su una release GitHub a tag fisso.
+    dev-release-tag: dev-build
+    asset-regex: '^ProtocolLib(?:-Spigot)?\.jar$'
+  packetevents:
+    enabled: true
+    channel: release
+    repository: retrooper/packetevents
+    dev-job-url: https://ci.codemc.io/job/retrooper/job/packetevents
+    asset-regex: '^packetevents-spigot-(?!.*-(?:javadoc|sources)\.jar$)[0-9].*\.jar$'

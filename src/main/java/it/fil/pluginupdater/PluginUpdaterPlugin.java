@@ -97,17 +97,19 @@ public final class PluginUpdaterPlugin extends JavaPlugin implements TabExecutor
             String assetRegex = section.getString("asset-regex", "").trim();
             UpdateChannel channel = UpdateChannel.parse(section.getString("channel", "release"));
             String devJobUrl = section.getString("dev-job-url", defaultDevJobUrl(name)).replaceAll("/+$", "");
+            String devReleaseTag = section.getString("dev-release-tag", "").trim();
             if (!repository.matches("[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")) {
                 getLogger().warning("Repository non valido per " + name + ": " + repository);
                 continue;
             }
-            if (channel == UpdateChannel.DEV
-                    && !devJobUrl.matches("https://ci\\.viaversion\\.com/[A-Za-z0-9_./-]+")) {
+            if (channel == UpdateChannel.DEV && devReleaseTag.isEmpty()
+                    && !devJobUrl.matches("https://(ci\\.viaversion\\.com|ci\\.codemc\\.io)/[A-Za-z0-9_./-]+")) {
                 getLogger().warning("dev-job-url non valido per " + name + ": " + devJobUrl);
                 continue;
             }
             try {
-                result.add(new TrackedPlugin(name, repository, Pattern.compile(assetRegex), channel, devJobUrl));
+                result.add(new TrackedPlugin(name, repository, Pattern.compile(assetRegex),
+                        channel, devJobUrl, devReleaseTag));
             } catch (PatternSyntaxException exception) {
                 getLogger().warning("asset-regex non valida per " + name + ": " + exception.getMessage());
             }
@@ -218,7 +220,8 @@ public final class PluginUpdaterPlugin extends JavaPlugin implements TabExecutor
             }
             boolean upToDate = target.channel() == UpdateChannel.DEV
                     ? downloadedDevBuild(target.name()) == release.buildNumber()
-                        && VersionComparator.compare(release.version(), installed) == 0
+                        && (!target.devReleaseTag().isEmpty()
+                        || VersionComparator.compare(release.version(), installed) == 0)
                     : VersionComparator.compare(release.version(), installed) <= 0
                         && !isDevelopmentVersion(installed);
             if (upToDate) {
@@ -239,7 +242,8 @@ public final class PluginUpdaterPlugin extends JavaPlugin implements TabExecutor
 
     private void stage(TrackedPlugin target, ReleaseInfo release) throws IOException {
         byte[] jar = client.download(release);
-        validateJar(jar, target.name(), release.version());
+        validateJar(jar, target.name(), target.channel() == UpdateChannel.DEV
+                ? null : release.version());
 
         Path updateFolder = getDataFolder().toPath().getParent().resolve("update");
         Files.createDirectories(updateFolder);
@@ -315,7 +319,7 @@ public final class PluginUpdaterPlugin extends JavaPlugin implements TabExecutor
                 if (!expectedName.equals(name)) {
                     throw new IOException("Il JAR dichiara il plugin " + name + " invece di " + expectedName);
                 }
-                if (VersionComparator.compare(version, expectedVersion) != 0) {
+                if (expectedVersion != null && VersionComparator.compare(version, expectedVersion) != 0) {
                     throw new IOException("Versione JAR " + version + " diversa dalla release " + expectedVersion);
                 }
                 return;

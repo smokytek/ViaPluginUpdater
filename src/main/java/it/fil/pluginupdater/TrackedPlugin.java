@@ -8,14 +8,16 @@ final class TrackedPlugin {
     private final Pattern assetPattern;
     private final UpdateChannel channel;
     private final String devJobUrl;
+    private final String devReleaseTag;
 
     TrackedPlugin(String name, String repository, Pattern assetPattern,
-                  UpdateChannel channel, String devJobUrl) {
+                  UpdateChannel channel, String devJobUrl, String devReleaseTag) {
         this.name = name;
         this.repository = repository;
         this.assetPattern = assetPattern;
         this.channel = channel;
         this.devJobUrl = devJobUrl;
+        this.devReleaseTag = devReleaseTag;
     }
 
     String name() { return name; }
@@ -23,4 +25,5 @@ final class TrackedPlugin {
     Pattern assetPattern() { return assetPattern; }
     UpdateChannel channel() { return channel; }
     String devJobUrl() { return devJobUrl; }
+    String devReleaseTag() { return devReleaseTag; }
 }

@@ -1,9 +1,9 @@
 name: PluginUpdater
-version: '1.1.1'
+version: '1.2.0-extended'
 main: it.fil.pluginupdater.PluginUpdaterPlugin
 author: Fil
 description: Aggiorna automaticamente plugin selezionati usando le release ufficiali GitHub.
-softdepend: [ViaVersion, ViaBackwards, ViaRewind]
+softdepend: [ViaVersion, ViaBackwards, ViaRewind, ProtocolLib, packetevents]
 commands:
   pluginupdater:
     description: Gestisce gli aggiornamenti automatici dei plugin.
