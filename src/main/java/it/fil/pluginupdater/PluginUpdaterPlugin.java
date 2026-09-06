@@ -332,8 +332,15 @@ public final class PluginUpdaterPlugin extends JavaPlugin implements TabExecutor
 
     private void logFailure(TrackedPlugin target, CommandSender sender, String message, Exception exception) {
         String safeMessage = message == null || message.trim().isEmpty() ? exception.getClass().getSimpleName() : message;
-        getLogger().log(Level.WARNING, "Aggiornamento di " + target.name() + " fallito: " + safeMessage, exception);
-        tell(sender, ChatColor.RED + target.name() + ": " + safeMessage);
+        String logMessage = "Aggiornamento di " + target.name() + " fallito: " + safeMessage;
+        if (getConfig().getBoolean("show-stack-traces", false)) {
+            getLogger().log(Level.WARNING, logMessage, exception);
+        } else {
+            getLogger().warning(logMessage);
+        }
+        if (sender != null) {
+            tell(sender, ChatColor.RED + target.name() + ": " + safeMessage);
+        }
     }
 
     private void tell(CommandSender sender, String message) {

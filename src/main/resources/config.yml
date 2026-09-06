@@ -8,6 +8,10 @@ download-updates: true
 # Esegue un controllo poco dopo l'avvio del server.
 check-on-startup: true
 
+# Se true mostra le tracce complete degli errori di rete. Lasciare false per
+# mantenere la console pulita e visualizzare soltanto un avviso sintetico.
+show-stack-traces: false
+
 # Dopo un aggiornamento riuscito elimina dalla cartella plugins i JAR con lo
 # stesso nome interno ma con una versione precedente a quella caricata.
 delete-old-jars: true

@@ -34,7 +34,7 @@ directly on a 1.7.10 Bukkit server; that server version may require a supported 
 
 ## Installation
 
-1. Download `PluginUpdater-1.1.0.jar` from the latest GitHub release.
+1. Download `PluginUpdater-1.1.1.jar` from the latest GitHub release.
 2. Put it in the server's `plugins` folder.
 3. Start or restart the server.
 4. Edit `plugins/PluginUpdater/config.yml` if needed.
@@ -44,6 +44,9 @@ Do not use `/reload` or a plugin manager to apply Via plugin updates. Use a full
 ## Update channels
 
 Set `channel: release` for stable GitHub releases or `channel: dev` for the latest successful build from the official ViaVersion CI. The channel is configured independently for ViaVersion, ViaBackwards, and ViaRewind.
+
+Network failures are logged as a single concise warning by default. Set
+`show-stack-traces: true` only when a complete exception trace is needed for debugging.
 
 ## Commands
 
@@ -62,7 +65,7 @@ All commands require `pluginupdater.admin`, granted to server operators by defau
 mvn clean package
 ```
 
-The compiled plugin is written to `target/PluginUpdater-1.1.0.jar`.
+The compiled plugin is written to `target/PluginUpdater-1.1.1.jar`.
 
 ## Disclaimer
 
