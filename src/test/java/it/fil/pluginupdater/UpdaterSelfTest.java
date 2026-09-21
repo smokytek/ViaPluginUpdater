@@ -27,6 +27,8 @@ public final class UpdaterSelfTest {
         testDev(client, "SkinsRestorer",
                 "https://ci.codemc.io/job/SkinsRestorer/job/SkinsRestorer",
                 "^SkinsRestorer\\.jar$", false);
+        testGeyserFloodgate(client, "spigot");
+        testGeyserFloodgate(client, "velocity");
     }
 
     private static void testDev(GitHubReleaseClient client, String name, String jobUrl) throws Exception {
@@ -73,6 +75,16 @@ public final class UpdaterSelfTest {
         require(release.buildNumber() > 0, "id asset dev " + name);
         require(client.download(release).length == release.size(), "download dev GitHub " + name);
         System.out.println("OK DEV: " + name + " " + release.displayVersion());
+    }
+
+    private static void testGeyserFloodgate(GitHubReleaseClient client, String platform) throws Exception {
+        TrackedPlugin plugin = new TrackedPlugin("floodgate", "GeyserMC/Floodgate",
+                Pattern.compile("^floodgate-" + platform + "\\.jar$"),
+                UpdateChannel.DEV, "", "", platform);
+        ReleaseInfo release = client.latest(plugin).get();
+        require(release.buildNumber() > 0, "build Floodgate " + platform);
+        require(client.download(release).length > 0, "download Floodgate " + platform);
+        System.out.println("OK DEV: Floodgate " + platform + " " + release.displayVersion());
     }
 
     private static void require(boolean condition, String name) {

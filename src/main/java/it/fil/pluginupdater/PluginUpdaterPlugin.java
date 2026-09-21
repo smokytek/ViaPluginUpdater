@@ -98,18 +98,19 @@ public final class PluginUpdaterPlugin extends JavaPlugin implements TabExecutor
             UpdateChannel channel = UpdateChannel.parse(section.getString("channel", "release"));
             String devJobUrl = section.getString("dev-job-url", defaultDevJobUrl(name)).replaceAll("/+$", "");
             String devReleaseTag = section.getString("dev-release-tag", "").trim();
+            String geyserPlatform = section.getString("geyser-platform", "").trim();
             if (!repository.matches("[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")) {
                 getLogger().warning("Repository non valido per " + name + ": " + repository);
                 continue;
             }
-            if (channel == UpdateChannel.DEV && devReleaseTag.isEmpty()
+            if (channel == UpdateChannel.DEV && devReleaseTag.isEmpty() && geyserPlatform.isEmpty()
                     && !devJobUrl.matches("https://(ci\\.viaversion\\.com|ci\\.codemc\\.io)/[A-Za-z0-9_./-]+")) {
                 getLogger().warning("dev-job-url non valido per " + name + ": " + devJobUrl);
                 continue;
             }
             try {
                 result.add(new TrackedPlugin(name, repository, Pattern.compile(assetRegex),
-                        channel, devJobUrl, devReleaseTag));
+                        channel, devJobUrl, devReleaseTag, geyserPlatform));
             } catch (PatternSyntaxException exception) {
                 getLogger().warning("asset-regex non valida per " + name + ": " + exception.getMessage());
             }

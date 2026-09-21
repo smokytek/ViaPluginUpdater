@@ -9,15 +9,23 @@ final class TrackedPlugin {
     private final UpdateChannel channel;
     private final String devJobUrl;
     private final String devReleaseTag;
+    private final String geyserPlatform;
 
     TrackedPlugin(String name, String repository, Pattern assetPattern,
                   UpdateChannel channel, String devJobUrl, String devReleaseTag) {
+        this(name, repository, assetPattern, channel, devJobUrl, devReleaseTag, "");
+    }
+
+    TrackedPlugin(String name, String repository, Pattern assetPattern,
+                  UpdateChannel channel, String devJobUrl, String devReleaseTag,
+                  String geyserPlatform) {
         this.name = name;
         this.repository = repository;
         this.assetPattern = assetPattern;
         this.channel = channel;
         this.devJobUrl = devJobUrl;
         this.devReleaseTag = devReleaseTag;
+        this.geyserPlatform = geyserPlatform;
     }
 
     String name() { return name; }
@@ -26,4 +34,5 @@ final class TrackedPlugin {
     UpdateChannel channel() { return channel; }
     String devJobUrl() { return devJobUrl; }
     String devReleaseTag() { return devReleaseTag; }
+    String geyserPlatform() { return geyserPlatform; }
 }

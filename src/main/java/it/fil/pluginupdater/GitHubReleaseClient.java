@@ -26,10 +26,27 @@ final class GitHubReleaseClient {
     }
 
     Optional<ReleaseInfo> latest(TrackedPlugin plugin) throws IOException {
+        if (!plugin.geyserPlatform().isEmpty()) return latestGeyserBuild(plugin);
         if (plugin.channel() == UpdateChannel.DEV && !plugin.devReleaseTag().isEmpty()) {
             return taggedDevRelease(plugin);
         }
         return plugin.channel() == UpdateChannel.DEV ? latestDev(plugin) : latestRelease(plugin);
+    }
+
+    private Optional<ReleaseInfo> latestGeyserBuild(TrackedPlugin plugin) throws IOException {
+        URI api = URI.create("https://download.geysermc.org/v2/projects/floodgate/versions/latest/builds/latest");
+        JsonObject root = requestJson(api);
+        String version = requiredString(root, "version");
+        int build = root.get("build").getAsInt();
+        JsonObject downloads = root.getAsJsonObject("downloads");
+        JsonObject selected = downloads == null ? null : downloads.getAsJsonObject(plugin.geyserPlatform());
+        if (selected == null) return Optional.empty();
+        String name = requiredString(selected, "name");
+        if (!plugin.assetPattern().matcher(name).matches()) return Optional.empty();
+        String checksum = requiredString(selected, "sha256");
+        URI download = URI.create("https://download.geysermc.org/v2/projects/floodgate/versions/latest/builds/"
+                + build + "/downloads/" + plugin.geyserPlatform());
+        return Optional.of(new ReleaseInfo(version, name, download, -1L, checksum, build));
     }
 
     private Optional<ReleaseInfo> latestRelease(TrackedPlugin plugin) throws IOException {
@@ -183,7 +200,8 @@ final class GitHubReleaseClient {
 
     private static boolean isOfficialSource(URI uri) {
         return "https".equalsIgnoreCase(uri.getScheme())
-                && (isGitHubApi(uri) || isGitHubDownload(uri) || isOfficialCi(uri));
+                && (isGitHubApi(uri) || isGitHubDownload(uri) || isOfficialCi(uri)
+                || "download.geysermc.org".equalsIgnoreCase(uri.getHost()));
     }
 
     private static boolean isGitHubApi(URI uri) {

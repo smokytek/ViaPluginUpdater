@@ -60,3 +60,10 @@ plugins:
     repository: SkinsRestorer/SkinsRestorer
     dev-job-url: https://ci.codemc.io/job/SkinsRestorer/job/SkinsRestorer
     asset-regex: '^SkinsRestorer\.jar$'
+  floodgate:
+    enabled: true
+    # Floodgate viene distribuito come build ufficiale continua da GeyserMC.
+    channel: dev
+    repository: GeyserMC/Floodgate
+    geyser-platform: spigot
+    asset-regex: '^floodgate-spigot\.jar$'
