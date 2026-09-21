@@ -54,3 +54,9 @@ plugins:
     repository: retrooper/packetevents
     dev-job-url: https://ci.codemc.io/job/retrooper/job/packetevents
     asset-regex: '^packetevents-spigot-(?!.*-(?:javadoc|sources)\.jar$)[0-9].*\.jar$'
+  SkinsRestorer:
+    enabled: true
+    channel: release
+    repository: SkinsRestorer/SkinsRestorer
+    dev-job-url: https://ci.codemc.io/job/SkinsRestorer/job/SkinsRestorer
+    asset-regex: '^SkinsRestorer\.jar$'

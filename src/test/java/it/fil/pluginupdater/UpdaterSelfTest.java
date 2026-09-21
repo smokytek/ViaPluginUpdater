@@ -22,6 +22,11 @@ public final class UpdaterSelfTest {
                 "^packetevents-spigot-(?!.*-(?:javadoc|sources)\\.jar$)[0-9].*\\.jar$");
         testDev(client, "packetevents", "https://ci.codemc.io/job/retrooper/job/packetevents",
                 "^packetevents-spigot-(?!.*-(?:javadoc|sources)\\.jar$)[0-9].*\\.jar$");
+        testRelease(client, "SkinsRestorer", "SkinsRestorer/SkinsRestorer",
+                "^SkinsRestorer\\.jar$");
+        testDev(client, "SkinsRestorer",
+                "https://ci.codemc.io/job/SkinsRestorer/job/SkinsRestorer",
+                "^SkinsRestorer\\.jar$", false);
     }
 
     private static void testDev(GitHubReleaseClient client, String name, String jobUrl) throws Exception {
@@ -30,11 +35,17 @@ public final class UpdaterSelfTest {
 
     private static void testDev(GitHubReleaseClient client, String name, String jobUrl,
                                 String pattern) throws Exception {
+        testDev(client, name, jobUrl, pattern, true);
+    }
+
+    private static void testDev(GitHubReleaseClient client, String name, String jobUrl,
+                                String pattern, boolean versionInFileName) throws Exception {
         TrackedPlugin plugin = new TrackedPlugin(name, "ViaVersion/" + name,
                 Pattern.compile(pattern), UpdateChannel.DEV, jobUrl, "");
         ReleaseInfo build = client.latest(plugin).get();
         require(build.buildNumber() > 0, "numero build dev " + name);
-        require(build.version().contains("SNAPSHOT"), "versione snapshot " + name);
+        require(versionInFileName ? !build.version().isEmpty()
+                : "dev".equals(build.version()), "versione dev " + name);
         require(client.download(build).length > 0, "download dev " + name);
         System.out.println("OK DEV: " + name + " " + build.displayVersion());
     }

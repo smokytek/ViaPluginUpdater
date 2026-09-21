@@ -126,7 +126,10 @@ final class GitHubReleaseClient {
         for (int i = 0; i < withoutJar.length(); i++) {
             if (Character.isDigit(withoutJar.charAt(i))) return withoutJar.substring(i);
         }
-        throw new IOException("Versione non riconoscibile dal nome asset: " + name);
+        // Some official CI jobs publish a stable artifact name (for example
+        // SkinsRestorer.jar). The Jenkins build number still uniquely identifies
+        // the development build and is used to detect subsequent updates.
+        return "dev";
     }
 
     private byte[] requestBytes(URI uri, boolean apiRequest) throws IOException {

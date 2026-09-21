@@ -11,6 +11,7 @@ A lightweight Bukkit, Spigot, and Paper plugin that automatically checks, valida
 - ViaRewind
 - ProtocolLib
 - PacketEvents
+- SkinsRestorer
 
 Each plugin can independently follow stable or development builds from its official distribution channel.
 
@@ -36,7 +37,7 @@ directly on a 1.7.10 Bukkit server; that server version may require a supported 
 
 ## Installation
 
-1. Download `PluginUpdater-1.2.0-extended.jar` from this branch's build output.
+1. Download `PluginUpdater-1.3.0-extended.jar` from this branch's build output.
 2. Put it in the server's `plugins` folder.
 3. Start or restart the server.
 4. Edit `plugins/PluginUpdater/config.yml` if needed.
@@ -45,7 +46,7 @@ Do not use `/reload` or a plugin manager to apply Via plugin updates. Use a full
 
 ## Update channels
 
-Set `channel: release` for stable GitHub releases or `channel: dev` for the latest official development build. ViaVersion, ViaBackwards, and ViaRewind use ViaVersion CI; ProtocolLib uses its `dev-build` GitHub release; PacketEvents uses CodeMC CI. The channel is configured independently for every plugin.
+Set `channel: release` for stable GitHub releases or `channel: dev` for the latest official development build. ViaVersion, ViaBackwards, and ViaRewind use ViaVersion CI; ProtocolLib uses its `dev-build` GitHub release; PacketEvents and SkinsRestorer use CodeMC CI. The channel is configured independently for every plugin.
 
 Network failures are logged as a single concise warning by default. Set
 `show-stack-traces: true` only when a complete exception trace is needed for debugging.
@@ -67,8 +68,8 @@ All commands require `pluginupdater.admin`, granted to server operators by defau
 mvn clean package
 ```
 
-The compiled plugin is written to `target/PluginUpdater-1.2.0-extended.jar`.
+The compiled plugin is written to `target/PluginUpdater-1.3.0-extended.jar`.
 
 ## Disclaimer
 
-This project is not affiliated with or endorsed by ViaVersion, ProtocolLib, or PacketEvents. All supported plugins belong to their respective authors.
+This project is not affiliated with or endorsed by ViaVersion, ProtocolLib, PacketEvents, or SkinsRestorer. All supported plugins belong to their respective authors.

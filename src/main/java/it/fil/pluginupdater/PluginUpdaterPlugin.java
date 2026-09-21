@@ -220,8 +220,6 @@ public final class PluginUpdaterPlugin extends JavaPlugin implements TabExecutor
             }
             boolean upToDate = target.channel() == UpdateChannel.DEV
                     ? downloadedDevBuild(target.name()) == release.buildNumber()
-                        && (!target.devReleaseTag().isEmpty()
-                        || VersionComparator.compare(release.version(), installed) == 0)
                     : VersionComparator.compare(release.version(), installed) <= 0
                         && !isDevelopmentVersion(installed);
             if (upToDate) {

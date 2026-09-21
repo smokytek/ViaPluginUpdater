@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>it.fil</groupId>
     <artifactId>plugin-updater</artifactId>
-    <version>1.2.0-extended</version>
+    <version>1.3.0-extended</version>
     <name>ViaPluginUpdater</name>
     <description>tired of updating viaplugins almost everyday, this simple plugin is for you</description>
 
