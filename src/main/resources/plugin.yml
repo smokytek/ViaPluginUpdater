@@ -1,5 +1,5 @@
 name: PluginUpdater
-version: '1.4.0-extended'
+version: '1.5.0-extended'
 main: it.fil.pluginupdater.PluginUpdaterPlugin
 author: Fil
 description: Aggiorna automaticamente plugin selezionati usando le release ufficiali GitHub.

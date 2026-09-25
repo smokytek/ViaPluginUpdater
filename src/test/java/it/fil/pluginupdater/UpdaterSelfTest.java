@@ -29,6 +29,7 @@ public final class UpdaterSelfTest {
                 "^SkinsRestorer\\.jar$", false);
         testGeyserFloodgate(client, "spigot");
         testGeyserFloodgate(client, "velocity");
+        testVelocityProxy();
     }
 
     private static void testDev(GitHubReleaseClient client, String name, String jobUrl) throws Exception {
@@ -85,6 +86,15 @@ public final class UpdaterSelfTest {
         require(release.buildNumber() > 0, "build Floodgate " + platform);
         require(client.download(release).length > 0, "download Floodgate " + platform);
         System.out.println("OK DEV: Floodgate " + platform + " " + release.displayVersion());
+    }
+
+    private static void testVelocityProxy() throws Exception {
+        PaperVelocityClient client = new PaperVelocityClient();
+        VelocityBuild build = client.latestStable();
+        require(build.build() > 0, "build Velocity");
+        require(build.fileName().endsWith(".jar"), "asset Velocity");
+        require(client.download(build).length == build.size(), "download e checksum Velocity");
+        System.out.println("OK: Velocity " + build.version() + " build " + build.build());
     }
 
     private static void require(boolean condition, String name) {

@@ -15,12 +15,18 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.time.Duration;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -30,7 +36,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
 import java.util.regex.Pattern;
 
-@Plugin(id = "pluginupdater", name = "PluginUpdater", version = "1.4.0-extended",
+@Plugin(id = "pluginupdater", name = "PluginUpdater", version = "1.5.0-extended",
         description = "Automatically updates SkinsRestorer and Floodgate on Velocity", authors = {"Fil"})
 public final class VelocityPluginUpdater {
     private final ProxyServer server;
@@ -40,6 +46,8 @@ public final class VelocityPluginUpdater {
     private final Properties config = new Properties();
     private final Properties state = new Properties();
     private GitHubReleaseClient client;
+    private final PaperVelocityClient velocityClient = new PaperVelocityClient();
+    private LocalDate lastRestartAttempt;
 
     @Inject
     public VelocityPluginUpdater(ProxyServer server, Logger logger,
@@ -62,6 +70,10 @@ public final class VelocityPluginUpdater {
         server.getScheduler().buildTask(this, this::checkAll)
                 .delay(Duration.ofSeconds(30))
                 .repeat(Duration.ofHours(hours))
+                .schedule();
+        server.getScheduler().buildTask(this, this::restartAtConfiguredTime)
+                .delay(Duration.ofSeconds(45))
+                .repeat(Duration.ofMinutes(1))
                 .schedule();
         logger.info("PluginUpdater enabled for Velocity: SkinsRestorer and floodgate");
     }
@@ -91,6 +103,7 @@ public final class VelocityPluginUpdater {
         if (!running.compareAndSet(false, true)) return;
         try {
             for (TrackedPlugin plugin : trackedPlugins()) checkOne(plugin);
+            checkVelocityProxy();
         } finally {
             running.set(false);
         }
@@ -138,11 +151,31 @@ public final class VelocityPluginUpdater {
             logger.info("{} {} downloaded; restart Velocity to apply it", target.name(),
                     release.displayVersion());
         } catch (Exception exception) {
-            if (Boolean.parseBoolean(config.getProperty("show-stack-traces", "false"))) {
-                logger.warn("Update of " + target.name() + " failed", exception);
-            } else {
-                logger.warn("Update of {} failed: {}", target.name(), exception.getMessage());
-            }
+            logFailure("Update of " + target.name(), exception);
+        }
+    }
+
+    private void checkVelocityProxy() {
+        if (!Boolean.parseBoolean(config.getProperty("velocity-update-enabled", "true"))) return;
+        try {
+            VelocityBuild latest = velocityClient.latestStable();
+            String current = server.getVersion().getVersion();
+            if (VersionComparator.compare(current, latest.version()) >= 0) return;
+            if (latest.version().equals(state.getProperty("velocity.version"))
+                    && Integer.toString(latest.build()).equals(state.getProperty("velocity.build"))
+                    && "true".equalsIgnoreCase(
+                    state.getProperty("velocity.update-pending", "false"))) return;
+            byte[] jar = velocityClient.download(latest);
+            validateVelocityServerJar(jar);
+            replaceFile(velocityJarPath(), jar);
+            state.setProperty("velocity.version", latest.version());
+            state.setProperty("velocity.build", Integer.toString(latest.build()));
+            state.setProperty("velocity.update-pending", "true");
+            saveState();
+            logger.info("Velocity {} build {} downloaded; Pterodactyl restart is scheduled for 03:00",
+                    latest.version(), latest.build());
+        } catch (Exception exception) {
+            logFailure("Velocity update", exception);
         }
     }
 
@@ -153,6 +186,11 @@ public final class VelocityPluginUpdater {
                 || Files.isSymbolicLink(normalized)) {
             throw new IOException("Unsafe plugin path: " + normalized);
         }
+        replaceFile(normalized, jar);
+    }
+
+    private void replaceFile(Path destination, byte[] jar) throws IOException {
+        Path normalized = destination.toAbsolutePath().normalize();
         Path temporary = dataDirectory.resolve(normalized.getFileName() + ".download");
         Files.write(temporary, jar, StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
@@ -162,6 +200,30 @@ public final class VelocityPluginUpdater {
         } catch (java.nio.file.AtomicMoveNotSupportedException ignored) {
             Files.move(temporary, normalized, StandardCopyOption.REPLACE_EXISTING);
         }
+    }
+
+    private Path velocityJarPath() throws IOException {
+        Path plugins = dataDirectory.toAbsolutePath().normalize().getParent();
+        Path proxyRoot = plugins == null ? null : plugins.getParent();
+        String fileName = config.getProperty("velocity-jar", "velocity.jar").trim();
+        if (proxyRoot == null || !fileName.matches("[A-Za-z0-9_.-]+\\.jar")) {
+            throw new IOException("velocity-jar must be a JAR filename in the proxy root directory");
+        }
+        Path path = proxyRoot.resolve(fileName).normalize();
+        if (!proxyRoot.equals(path.getParent()) || Files.isSymbolicLink(path)) {
+            throw new IOException("Unsafe Velocity JAR path");
+        }
+        return path;
+    }
+
+    private static void validateVelocityServerJar(byte[] jarBytes) throws IOException {
+        try (JarInputStream jar = new JarInputStream(new ByteArrayInputStream(jarBytes))) {
+            JarEntry entry;
+            while ((entry = jar.getNextJarEntry()) != null) {
+                if ("com/velocitypowered/proxy/Velocity.class".equals(entry.getName())) return;
+            }
+        }
+        throw new IOException("Downloaded file is not a Velocity proxy JAR");
     }
 
     private static void validateVelocityJar(byte[] jarBytes, String expectedId) throws IOException {
@@ -180,6 +242,67 @@ public final class VelocityPluginUpdater {
             }
         }
         throw new IOException("velocity-plugin.json is missing from downloaded JAR");
+    }
+
+    private void restartAtConfiguredTime() {
+        if (!"true".equalsIgnoreCase(state.getProperty("velocity.update-pending", "false"))) return;
+        if (!Boolean.parseBoolean(config.getProperty("pterodactyl-restart-enabled", "false"))) return;
+        try {
+            ZoneId zone = ZoneId.of(config.getProperty("restart-zone", "Europe/Rome"));
+            ZonedDateTime now = ZonedDateTime.now(zone);
+            int hour = (int) parseLong(config.getProperty("restart-hour"), 3L);
+            if (now.getHour() != hour || lastRestartAttempt != null
+                    && lastRestartAttempt.equals(now.toLocalDate())) return;
+            lastRestartAttempt = now.toLocalDate();
+            sendPterodactylRestart();
+            state.setProperty("velocity.update-pending", "false");
+            saveState();
+            logger.info("Pterodactyl accepted the scheduled Velocity restart");
+        } catch (Exception exception) {
+            logFailure("Scheduled Pterodactyl restart", exception);
+        }
+    }
+
+    private void sendPterodactylRestart() throws IOException {
+        String base = config.getProperty("pterodactyl-panel-url", "").replaceAll("/+$", "");
+        String serverId = config.getProperty("pterodactyl-server-id", "").trim();
+        String token = config.getProperty("pterodactyl-client-api-token", "").trim();
+        if (!serverId.matches("[A-Za-z0-9_-]{4,64}") || token.isEmpty()) {
+            throw new IOException("Pterodactyl server ID or Client API token is missing");
+        }
+        URI baseUri = URI.create(base);
+        boolean allowHttp = Boolean.parseBoolean(config.getProperty("pterodactyl-allow-http", "false"));
+        if (!("https".equalsIgnoreCase(baseUri.getScheme())
+                || allowHttp && "http".equalsIgnoreCase(baseUri.getScheme()))
+                || baseUri.getHost() == null || baseUri.getUserInfo() != null
+                || baseUri.getQuery() != null || baseUri.getFragment() != null) {
+            throw new IOException("Pterodactyl panel URL must use HTTPS");
+        }
+        URL endpoint = new URL(base + "/api/client/servers/" + serverId + "/power");
+        HttpURLConnection connection = (HttpURLConnection) endpoint.openConnection();
+        connection.setConnectTimeout(15000);
+        connection.setReadTimeout(30000);
+        connection.setRequestMethod("POST");
+        connection.setDoOutput(true);
+        connection.setRequestProperty("Authorization", "Bearer " + token);
+        connection.setRequestProperty("Accept", "Application/vnd.pterodactyl.v1+json");
+        connection.setRequestProperty("Content-Type", "application/json");
+        byte[] body = "{\"signal\":\"restart\"}".getBytes(StandardCharsets.UTF_8);
+        connection.setFixedLengthStreamingMode(body.length);
+        try (java.io.OutputStream output = connection.getOutputStream()) {
+            output.write(body);
+        }
+        int status = connection.getResponseCode();
+        connection.disconnect();
+        if (status != 204) throw new IOException("Pterodactyl returned HTTP " + status);
+    }
+
+    private void logFailure(String operation, Exception exception) {
+        if (Boolean.parseBoolean(config.getProperty("show-stack-traces", "false"))) {
+            logger.warn(operation + " failed", exception);
+        } else {
+            logger.warn("{} failed: {}", operation, exception.getMessage());
+        }
     }
 
     private void saveState() throws IOException {

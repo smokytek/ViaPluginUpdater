@@ -18,6 +18,7 @@ The separate Velocity build updates only:
 
 - SkinsRestorer
 - Floodgate (Velocity build)
+- Velocity itself (latest stable PaperMC build)
 
 Each plugin can independently follow stable or development builds from its official distribution channel.
 
@@ -29,6 +30,7 @@ Each plugin can independently follow stable or development builds from its offic
 - Validates file size, SHA-256 when published, JAR structure, plugin name, and version
 - Stages updates in Paper's `plugins/update` folder for the next full restart
 - Atomically replaces the installed JAR on Velocity; the new version loads after a proxy restart
+- Can restart an updated Velocity proxy at 03:00 through the Pterodactyl Client API
 - Detects new dev builds even when the `SNAPSHOT` version string does not change
 - Optionally removes superseded JAR copies after the new version is loaded
 - Never hot-reloads protocol plugins
@@ -72,14 +74,32 @@ Network failures are logged as a single concise warning by default. Set
 All commands require `pluginupdater.admin`, granted to server operators by default.
 The Velocity build runs automatically and currently has no commands.
 
+## Velocity proxy updates and Pterodactyl
+
+The Velocity build checks the official PaperMC Downloads Service for the latest
+stable proxy build and verifies its published SHA-256 checksum. Set `velocity-jar`
+in `velocity.properties` to the JAR filename used by the Pterodactyl startup command.
+The file must be located directly in the proxy root directory.
+
+To enable the conditional 03:00 restart, configure:
+
+- `pterodactyl-restart-enabled=true`
+- `pterodactyl-panel-url` with the panel base URL
+- `pterodactyl-server-id` with the server short UUID
+- `pterodactyl-client-api-token` with a Client API key allowed to restart that server
+- `restart-zone` with the desired IANA timezone
+
+The API token is never written to the log. HTTPS is required by default. A restart
+request is sent only when a new Velocity JAR has been downloaded successfully.
+
 ## Building
 
 ```shell
 mvn clean package
 ```
 
-The build creates `target/PluginUpdater-1.4.0-extended-paper.jar` and
-`target/PluginUpdater-1.4.0-extended-velocity.jar`.
+The build creates `target/PluginUpdater-1.5.0-extended-paper.jar` and
+`target/PluginUpdater-1.5.0-extended-velocity.jar`.
 
 ## Disclaimer
 
